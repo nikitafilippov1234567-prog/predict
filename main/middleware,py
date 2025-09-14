@@ -1,0 +1,37 @@
+from django.shortcuts import redirect
+from django.urls import reverse
+from django.conf import settings
+import time
+
+class AuthenticationMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Пути, которые не требуют аутентификации
+        login_path = reverse('login')
+
+        # Добавляем все пути которые должны работать без аутентификации
+        public_paths = [
+            login_path,
+        ]
+
+        # Если это публичный путь, пропускаем проверку
+        if request.path in public_paths:
+            response = self.get_response(request)
+            return response
+
+        authenticated = request.session.get('authenticated', False)
+        auth_time = request.session.get('auth_time', 0)
+        current_time = time.time()
+
+        # Требуем повторную аутентификацию если:
+        # 1. Не аутентифицирован ИЛИ
+        # 2. Прошло больше 10 минут (600 секунд) с момента аутентификации
+        if not authenticated or current_time - auth_time > 600:
+            request.session.flush()
+            return redirect('login')
+
+        # Если аутентифицирован и время не истекло, пропускаем запрос
+        response = self.get_response(request)
+        return response
