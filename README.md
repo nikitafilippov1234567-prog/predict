@@ -1,1 +1,1 @@
-# Django+ML
+# Django+ML, nothing special
