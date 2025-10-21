@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Оценка недвижимости</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: #0F1113;
+      color: #E6E7E8;
+      min-height: 100vh;
+    }
+
+    .page {
+      display: none;
+      min-height: calc(100vh - 80px);
+      padding: 2rem 1rem;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    /* Header */
+    .header {
+      background: #0F1113;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #2A2B2C;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      cursor: pointer;
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 6px;
+      background: #111215;
+      border: 1px solid #2A2B2C;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .logo::before {
+      content: '△';
+      color: #8ACE00;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .header-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .header-subtitle {
+      font-size: 0.75rem;
+      color: #9AA0A6;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin: 0;
+    }
+
+    .header-nav {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .nav-link {
+      color: #E6E7E8;
+      text-decoration: none;
+      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+
+    .nav-link:hover {
+      background: #131415;
+      color: #8ACE00;
+    }
+
+    /* Input Page */
+    .input-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .input-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .input-header h1 {
+      font-size: 1.5rem;
+      font-weight: 500;
+      margin: 0 0 0.5rem 0;
+      color: #E6E7E8;
+    }
+
+    .input-header p {
+      color: #9AA0A6;
+      margin: 0;
+      font-size: 0.9rem;
+    }
+
+    .main-card {
+      background: #131415;
+      border: 1px solid #222425;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .input-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    @media (max-width: 768px) {
+      .input-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-section h2 {
+      font-size: 1.25rem;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.75rem;
+      color: #9AA0A6;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 500;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 6px;
+      border: 1px solid #242526;
+      background: #0E1011;
+      color: #E6E7E8;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: #8ACE00;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .form-row.three-cols {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .map-section {
+      background: #131415;
+      border: 1px solid #1E1F20;
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .map-section h2 {
+      font-size: 1.25rem;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+    }
+
+    #map {
+      height: 300px;
+      border-radius: 6px;
+      border: 1px solid #242526;
+      margin-bottom: 1rem;
+    }
+
+    .map-info {
+      color: #9AA0A6;
+      font-size: 0.875rem;
+      margin: 0.5rem 0;
+    }
+
+    .address-search {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .address-search input {
+      flex: 1;
+      padding: 0.75rem;
+      border: 1px solid #242526;
+      background: #0E1011;
+      color: #E6E7E8;
+      border-radius: 6px;
+    }
+
+    .address-search button {
+      padding: 0.75rem 1rem;
+      background: #8ACE00;
+      color: #0B0B0B;
+      border: none;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: brightness 0.2s;
+    }
+
+    .address-search button:hover {
+      filter: brightness(95%);
+    }
+
+    .selected-info {
+      font-size: 0.875rem;
+      color: #9AA0A6;
+      margin-top: 0.5rem;
+    }
+
+    .submit-row {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .submit-btn {
+      background: #8ACE00;
+      color: #0B0B0B;
+      border: none;
+      padding: 0.75rem 2rem;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: brightness 0.2s;
+      flex: 1;
+    }
+
+    .submit-btn:hover {
+      filter: brightness(95%);
+    }
+
+    .clear-btn {
+      padding: 0.75rem 1rem;
+      border: 1px solid #242526;
+      background: transparent;
+      color: #E6E7E8;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .clear-btn:hover {
+      border-color: #8ACE00;
+    }
+
+    .error-message {
+      color: #ff6b6b;
+      text-align: center;
+      margin: 1rem 0;
+      display: none;
+      background: rgba(255, 107, 107, 0.1);
+      padding: 1rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 107, 107, 0.3);
+    }
+
+    /* Report Page */
+    .report-content {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .back-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: transparent;
+      border: 1px solid #242526;
+      color: #E6E7E8;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+      transition: all 0.2s;
+    }
+
+    .back-button:hover {
+      border-color: #8ACE00;
+      color: #8ACE00;
+    }
+
+    .report-card {
+      background: #131415;
+      border: 1px solid #222425;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .report-card h2 {
+      font-size: 1.25rem;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      color: #E6E7E8;
+    }
+
+    .range-value {
+      font-size: 2.5rem;
+      font-weight: 600;
+      color: #8ACE00;
+      text-align: center;
+      margin: 1rem 0;
+    }
+
+    .models-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+
+    .model-card-small {
+      background: #0D0E0F;
+      border: 1px solid #202122;
+      border-radius: 8px;
+      padding: 1.5rem;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+
+    .model-card-small:hover {
+      transform: translateY(-2px);
+    }
+
+    .model-card-small.stacking {
+      background: #1E1F20;
+      border-color: #8ACE00;
+    }
+
+    .model-card-small h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1rem;
+      color: #8ACE00;
+      font-weight: 500;
+    }
+
+    .model-price {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #E6E7E8;
+      margin: 0.5rem 0;
+    }
+
+    .model-weight {
+      color: #9AA0A6;
+      font-size: 0.875rem;
+    }
+
+    .toggle-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .toggle-buttons button {
+      padding: 0.5rem 1rem;
+      border: 1px solid #222324;
+      background: transparent;
+      color: #E6E7E8;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .toggle-buttons button.active {
+      background: #8ACE00;
+      color: #0B0B0B;
+      border-color: #8ACE00;
+    }
+
+    canvas {
+      background: #0E1011;
+      border-radius: 6px;
+      border: 1px solid #242526;
+      width: 100% !important;
+      max-height: 400px;
+    }
+
+    .base-values {
+      text-align: center;
+      color: #9AA0A6;
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+    }
+
+    .quantile-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .quantile-buttons button {
+      padding: 0.5rem 1rem;
+      border: 1px solid #222324;
+      background: transparent;
+      color: #E6E7E8;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .quantile-buttons button.active {
+      background: #8ACE00;
+      color: #0B0B0B;
+      border-color: #8ACE00;
+    }
+
+    .quantile-buttons button.recommended::after {
+      content: '★';
+      color: #8ACE00;
+      font-size: 1rem;
+      position: absolute;
+      top: -8px;
+      right: -8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      background: #131415;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #222425;
+    }
+
+    th, td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid #242526;
+    }
+
+    th {
+      background: #1E1F20;
+      color: #8ACE00;
+      font-weight: 500;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    tr:hover {
+      background: #1E1F20;
+    }
+
+    td {
+      color: #E6E7E8;
+    }
+
+    .save-block {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin-top: 2rem;
+    }
+
+    .editable-box {
+      flex: 1;
+      background: #0E1011;
+      border: 1px solid #242526;
+      border-radius: 6px;
+      padding: 1rem;
+    }
+
+    .editable-box span {
+      display: block;
+      color: #9AA0A6;
+      font-size: 0.875rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .editable {
+      background: transparent;
+      border: none;
+      color: #E6E7E8;
+      font-size: 1.25rem;
+      width: 100%;
+      outline: none;
+    }
+
+    .save {
+      background: #8ACE00;
+      color: #0B0B0B;
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: brightness 0.2s;
+    }
+
+    .save:hover {
+      filter: brightness(95%);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left" onclick="showPage('input')">
+      <div class="logo"></div>
+      <div>
+        <div class="header-subtitle">NikitaFilippov</div>
+        <h1 class="header-title">Property Estimator</h1>
+      </div>
+    </div>
+    <nav class="header-nav">
+      <a href="#" class="nav-link" onclick="showPage('input'); return false;">Главная</a>
+      <form method="post" action="{% url 'logout' %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="nav-link" style="background: none; border: none; cursor: pointer; font: inherit;">Выход</button>
+      </form>
+      <a href="https://github.com" target="_blank" class="nav-link">GitHub</a>
+    </nav>
+  </div>
+
+  <div id="inputPage" class="page active">
+    <div class="input-container">
+      <div class="input-header">
+        <h1>Оценка недвижимости</h1>
+        <p>Введите параметры жилья и получите точную оценку рыночной стоимости</p>
+      </div>
+      
+      <div class="error-message" id="errorMessage"></div>
+      
+      <div class="main-card">
+        <div class="input-grid">
+          <div class="form-section">
+            <h2>Параметры объекта</h2>
+            <form id="propertyForm">
+              {% csrf_token %}
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Площадь (м²)</label>
+                  <input type="number" id="area" placeholder="42" step="0.1" required>
+                </div>
+                <div class="form-group">
+                  <label>Жилая площадь (м²)</label>
+                  <input type="number" id="livingArea" placeholder="32" step="0.1" required>
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Площадь кухни (м²)</label>
+                  <input type="number" id="kitchenArea" placeholder="10" step="0.1" required>
+                </div>
+                <div class="form-group">
+                  <label>Количество комнат</label>
+                  <select id="numberOfRooms" required>
+                    <option value="">Выбрать</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4+</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="form-row three-cols">
+                <div class="form-group">
+                  <label>Этаж</label>
+                  <input type="number" id="floor" placeholder="5" min="0" required>
+                </div>
+                <div class="form-group">
+                  <label>Всего этажей</label>
+                  <input type="number" id="numberOfFloors" placeholder="9" min="1" required>
+                </div>
+                <div class="form-group">
+                  <label>Время до метро (мин)</label>
+                  <input type="number" id="minutesToMetro" placeholder="5" step="0.1" required>
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Тип квартиры</label>
+                  <select id="apartmentType" required>
+                    <option value="">Выбрать</option>
+                    <option value="1">Вторичка</option>
+                    <option value="2">Новостройка</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Ремонт</label>
+                  <select id="renovation" required>
+                    <option value="">Выбрать</option>
+                    <option value="1">Без ремонта</option>
+                    <option value="2">Косметический</option>
+                    <option value="3">Евроремонт</option>
+                    <option value="4">Дизайнерский</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label>Тип данных</label>
+                <select id="dataType">
+                  <option value="cleaned">Очищенные данные</option>
+                  <option value="raw">Сырые данные</option>
+                </select>
+              </div>
+              
+              <div class="submit-row">
+                <button type="submit" class="submit-btn">Рассчитать стоимость</button>
+                <button type="button" class="clear-btn" onclick="document.getElementById('propertyForm').reset(); document.getElementById('selectedAddress').textContent=''; document.getElementById('nearestMetros').textContent=''; if(marker) map.removeLayer(marker);">Очистить</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="map-section">
+            <h2>Местоположение</h2>
+            <div id="map"></div>
+            <p class="map-info">Нажмите на карту или введите адрес, чтобы указать ближайшую станцию метро</p>
+            <div class="address-search">
+              <input type="text" id="addressInput" placeholder="Введите адрес">
+              <button onclick="searchAddress()">Найти</button>
+            </div>
+            <div class="selected-info" id="selectedAddress"></div>
+            <div class="selected-info" id="nearestMetros"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="reportPage" class="page">
+    <div class="report-content">
+      <button class="back-button" onclick="showPage('input')">← Назад к форме</button>
+      <h1>Отчёт об оценке недвижимости</h1>
+      <div class="report-card">
+        <h2>Рекомендуемый диапазон стоимости</h2>
+        <p class="range-value" id="rangeValue"></p>
+      </div>
+
+      <div class="report-card">
+        <h2>Предсказания моделей</h2>
+        <div class="models-grid" id="modelsGrid"></div>
+      </div>
+
+      <div class="report-card">
+        <h2>Влияние признаков на предсказание</h2>
+        <div class="toggle-buttons">
+          <button class="active" id="btn-shap">SHAP</button>
+          <button id="btn-lime">LIME</button>
+        </div>
+        <canvas id="barChart" height="240"></canvas>
+        <div class="base-values" id="baseValues"></div>
+      </div>
+
+      <div class="report-card">
+        <h2>Распределение квантилей</h2>
+        <div class="quantile-buttons">
+          <button id="q5" class="recommended">5 квантилей (4seg)</button>
+          <button id="q4">4 квантиля (3seg)</button>
+          <button id="q2">2 квантиля (general)</button>
+        </div>
+        <canvas id="quantileChart" height="180"></canvas>
+      </div>
+
+      <div class="report-card">
+        <h2>Похожая недвижимость в данной области</h2>
+        <table id="similarProperties">
+          <thead>
+              <tr>
+                  <th>Площадь</th>
+                  <th>Комнат</th>
+                  <th>Кухня</th>
+                  <th>Жилая</th>
+                  <th>Этаж</th>
+                  <th>Этажей</th>
+                  <th>До метро</th>
+                  <th>Тип</th>
+                  <th>Ремонт</th>
+                  <th>Цена</th>
+              </tr>
+          </thead>
+          <tbody id="similarPropertiesBody"></tbody>
+        </table>
+      </div>
+
+      <div class="report-card">
+        <div class="save-block">
+          <div class="editable-box">
+            <span>Взвешенное предсказание ансамбля:</span>
+            <input type="text" class="editable" id="ensemblePrediction" value="0" data-raw="0">
+          </div>
+          <button class="save">Сохранить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const metro_coords = {
+        "Аэропорт": [55.79981, 37.53412],
+        "Академическая": [55.68808, 37.57501],
+        "Алексеевская": [55.80737, 37.63844],
+        "Александровский сад": [55.75219, 37.60836],
+        "Алтуфьево": [55.89504, 37.58605],
+        "Аннино": [55.581818, 37.594978],
+        "Арбатская": [55.75228, 37.60357],
+        "Авиамоторная": [55.75208, 37.71677],
+        "Автозаводская": [55.70801, 37.65858],
+        "Бабушкинская": [55.86814, 37.66292],
+        "Багратионовская": [55.74326, 37.49753],
+        "Баррикадная": [55.76027, 37.58111],
+        "Бауманская": [55.77228, 37.67857],
+        "Беговая": [55.77378, 37.54412],
+        "Белорусская": [55.77492, 37.58207],
+        "Беляево": [55.64371, 37.52762],
+        "Бибирево": [55.88294, 37.60523],
+        "Библиотека им. Ленина": [55.75211, 37.60988],
+        "Битцевский парк": [55.60029, 37.55735],
+        "Боровицкая": [55.75034, 37.60857],
+        "Ботанический сад": [55.84649, 37.63914],
+        "Братеево": [55.631363, 37.75174],
+        "Братиславская": [55.66126, 37.7509],
+        "Чеховская": [55.76596, 37.6075],
+        "Черкизовская": [55.802, 37.74438],
+        "Чертаново": [55.63978, 37.60893],
+        "Чистые пруды": [55.76426, 37.6389],
+        "Чкаловская": [55.756218, 37.659375],
+        "Динамо": [55.78867, 37.55936],
+        "Бульвар Дмитрия Донского": [55.567759, 37.575724],
+        "Дмитровская": [55.80756, 37.57959],
+        "Добрынинская": [55.72886, 37.62356],
+        "Домодедовская": [55.61009, 37.71612],
+        "Достоевская": [55.782438, 37.612747],
+        "Дубровка": [55.719732, 37.676915],
+        "Электрозаводская": [55.78177, 37.70471],
+        "Шоссе энтузиастов": [55.75837, 37.75155],
+        "Филевский парк": [55.73953, 37.48366],
+        "Фили": [55.74673, 37.51384],
+        "Фрунзенская": [55.72718, 37.58036],
+        "Измайловская": [55.78768, 37.78329],
+        "Улица Академика Янгеля": [55.596141, 37.59981],
+        "Каховская": [55.65332, 37.59722],
+        "Калужская": [55.65566, 37.53923],
+        "Кантемировская": [55.6343, 37.65632],
+        "Каширская": [55.65412, 37.64738],
+        "Киевская": [55.74388, 37.56673],
+        "Китай город": [55.75634, 37.63002],
+        "Коломенское": [55.67745, 37.66298],
+        "Комсомольская": [55.77717, 37.655689],
+        "Коньково": [55.63253, 37.52005],
+        "Кожуховская": [55.70533, 37.68508],
+        "Красногвардейская": [55.614491, 37.744724],
+        "Краснопресненская": [55.760109, 37.577141],
+        "Красносельская": [55.780763, 37.666264],
+        "Красные ворота": [55.76958, 37.6499],
+        "Крестьянская застава": [55.732877, 37.668998],
+        "Кропоткинская": [55.74525, 37.60463],
+        "Крылатское": [55.75879, 37.40633],
+        "Кунцевская": [55.73045, 37.44646],
+        "Курская": [55.75848, 37.65985],
+        "Кутузовская": [55.73947, 37.53433],
+        "Кузьминки": [55.70531, 37.76775],
+        "Кузнецкий мост": [55.76118, 37.62386],
+        "Ленинский проспект": [55.70818, 37.58742],
+        "Лубянка": [55.75876, 37.62573],
+        "Люблино": [55.67694, 37.76316],
+        "Марьина роща": [55.793602, 37.615762],
+        "Марьино": [55.65193, 37.74771],
+        "Марксистская": [55.7407, 37.65773],
+        "Маяковская": [55.76909, 37.59635],
+        "Медведково": [55.88594, 37.6612],
+        "Менделеевская": [55.78251, 37.59792],
+        "Проспект мира": [55.781196, 37.633529],
+        "Митино": [55.84589, 37.35909],
+        "Молодежная": [55.74001, 37.41724],
+        "Нагатинская": [55.68386, 37.62285],
+        "Нагорная": [55.67283, 37.61019],
+        "Нахимовский проспект": [55.66376, 37.60767],
+        "Новые черемушки": [55.66892, 37.55417],
+        "Новогиреево": [55.75111, 37.81564],
+        "Новокосино": [55.740539, 37.856347],
+        "Новокузнецкая": [55.74212, 37.62901],
+        "Новослободская": [55.77921, 37.6009],
+        "Охотный ряд": [55.75703, 37.61614],
+        "Октябрьское поле": [55.793615, 37.493496],
+        "Октябрьская": [55.729, 37.61139],
+        "Орехово": [55.61214, 37.69584],
+        "Отрадное": [55.86417, 37.60488],
+        "Парк культуры": [55.73512, 37.59328],
+        "Парк Победы": [55.736559, 37.512591],
+        "Партизанская": [55.78962, 37.7479],
+        "Павелецкая": [55.7313, 37.63612],
+        "Печатники": [55.69252, 37.7295],
+        "Перово": [55.75109, 37.78854],
+        "Первомайская": [55.79342, 37.79979],
+        "Петровско-Разумовская": [55.83712, 37.57349],
+        "Пионерская": [55.73583, 37.46731],
+        "Планерная": [55.85931, 37.43687],
+        "Площадь Ильича": [55.745663, 37.681123],
+        "Улица Подбельского": [55.81503, 37.73209],
+        "Полежаевская": [55.77691, 37.51692],
+        "Полянка": [55.73654, 37.61856],
+        "Пражская": [55.61354, 37.60499],
+        "Преображенская площадь": [55.79655, 37.71591],
+        "Профсоюзная": [55.67822, 37.56381],
+        "Пролетарская": [55.73171, 37.66726],
+        "Пронская": [55.698344, 37.850869],
+        "Пушкинская": [55.76565, 37.60417],
+        "Речной вокзал": [55.85378, 37.47679],
+        "Площадь Революции": [55.75646, 37.62321],
+        "Рижская": [55.79222, 37.63557],
+        "Римская": [55.746487, 37.682631],
+        "Рязанский проспект": [55.71753, 37.79425],
+        "Савеловская": [55.79421, 37.58666],
+        "Щелковская": [55.80955, 37.79884],
+        "Щукинская": [55.80796, 37.46629],
+        "Семеновская": [55.78279, 37.71844],
+        "Серпуховская": [55.72658, 37.62462],
+        "Севастопольская": [55.65121, 37.59939],
+        "Шаболовская": [55.71886, 37.60797],
+        "Сходненская": [55.84937, 37.43951],
+        "Славянский бульвар": [55.729508, 37.468829],
+        "Смоленская": [55.74823, 37.58384],
+        "Сокол": [55.80518, 37.51495],
+        "Сокольники": [55.78893, 37.67943],
+        "Спортивная": [55.72397, 37.56547],
+        "Сретенский бульвар": [55.765551, 37.635261],
+        "Строгино": [55.80435, 37.396363],
+        "Студенческая": [55.73873, 37.54825],
+        "Сухаревская": [55.77211, 37.63239],
+        "Площадь Суворова": [55.781984, 37.614487],
+        "Свиблово": [55.85543, 37.65419],
+        "Таганская": [55.74255, 37.65389],
+        "Театральная": [55.75857, 37.6177],
+        "Текстильщики": [55.70947, 37.73282],
+        "Теплый стан": [55.61814, 37.50814],
+        "Тимирязевская": [55.81842, 37.57571],
+        "Третьяковская": [55.74061, 37.62492],
+        "Трубная": [55.767605, 37.6221],
+        "Царицино": [55.62011, 37.66939],
+        "Цветной бульвар": [55.7716, 37.62058],
+        "Тульская": [55.70901, 37.6226],
+        "Тургеневская": [55.7646, 37.63623],
+        "Тушинская": [55.8258, 37.43621],
+        "Тверская": [55.7652, 37.60352],
+        "Улица 1905 года": [55.76355, 37.56375],
+        "Университет": [55.69167, 37.53433],
+        "Варшавская": [55.65381, 37.62084],
+        "ВДНХ": [55.82177, 37.64107],
+        "Проспект Вернадского": [55.67613, 37.5045],
+        "Владыкино": [55.84669, 37.59251],
+        "Водный стадион": [55.8386, 37.48749],
+        "Войковская": [55.81811, 37.49905],
+        "Волоколамская": [55.83459, 37.38367],
+        "Волгоградский проспект": [55.7243, 37.68795],
+        "Волжская": [55.69101, 37.75498],
+        "Воробьёвы горы": [55.710454, 37.558601],
+        "Выхино": [55.715, 37.81802],
+        "Ясенево": [55.60535, 37.53494],
+        "Юго-западная": [55.66464, 37.48421],
+        "Южная": [55.62122, 37.60752],
+        "Опалиха": [55.8233, 37.2467],
+        "Павшино": [55.815, 37.3408],
+        "Мякинино": [55.1298, 38.3789],
+        "Нахабино": [55.8417, 37.1843],
+        "Красногорская": [55.814, 37.3044],
+        "Аникеевка": [55.8321, 37.2199],
+        "Пенягино": [55.8234, 37.3613],
+        "Ростокино": [55.841306, 37.67],
+        "Филатов Луг": [55.598177, 37.407915],
+        "Раменки": [56.037413, 36.698263],
+        "Шелепиха": [55.7575, 37.525556],
+        "Народное Ополчение": [55.775718, 37.485072],
+        "Технопарк": [55.693932, 37.664425],
+        "Петровский Парк": [55.791703, 37.556934],
+        "Деловой центр": [55.748748, 37.537979],
+        "Выставочная": [55.750177, 37.541461],
+        "Тестовская": [55.756775, 37.532826],
+        "Прокшино": [55.586397, 37.432967],
+        "Окружная": [55.844693, 37.575497],
+        "Рабочий посёлок": [55.726877, 37.417888],
+        "Селигерская": [55.866555, 37.547126],
+        "Ломоносовский проспект": [55.707060, 37.516076],
+        "Панфиловская": [55.798319, 37.499959],
+        "Беломорская": [55.865371, 37.475708],
+        "Нагатинский Затон": [55.684429, 37.704614],
+        "ЦСКА": [55.786591, 37.533278],
+        "Балтийская": [55.825142, 37.494729],
+        "Мнёвники": [55.761152, 37.471397],
+        "Хорошёво": [55.776846, 37.507116],
+        "Новаторская": [55.669822, 37.522193],
+        "Международная": [55.748314, 37.534277],
+        "Коммунарка": [55.560067, 37.468643],
+        "Стрешнево": [55.813668, 37.486986],
+        "Матвеевская": [55.704829, 37.481510],
+        "Стахановская": [55.727209, 37.752237],
+        "Аэропорт Внуково": [55.607085, 37.287711],
+        "Выставочный центр": [55.824025, 37.638484],
+        "Солнцево": [55.649389, 37.390914],
+        "Зябликово": [55.612336, 37.745199],
+        "Новопеределкино": [55.639615, 37.355244],
+        "Карамышевская": [55.775702, 37.485084],
+        "Угрешская": [55.717943, 37.695563],
+        "Локомотив": [55.804053, 37.745977],
+        "Рассказовка": [55.633970, 37.334746],
+        "Гражданская": [55.805353, 37.553764],
+        "Подольск": [55.432327, 37.565958],
+        "Перерва": [55.661330, 37.717001],
+        "Бунинская аллея": [55.537953, 37.515925],
+        "Улица Старокачаловская": [55.568620, 37.576223],
+        "Ольховая": [55.568973, 37.459044],
+        "Калитники": [55.733812, 37.702536],
+        "Курьяново": [55.649859, 37.701546],
+        "Бульвар Адмирала Ушакова": [55.545322, 37.542841],
+        "Хорошёвская": [55.776857, 37.520805],
+        "Ховрино": [55.878274, 37.480780],
+        "Физтех": [55.921520, 37.546492],
+        "Бескудниково": [55.882720, 37.567573],
+        "Москворечье": [55.640142, 37.688222],
+        "Говорово": [55.659478, 37.417180],
+        "Тропарёво": [55.645843, 37.472500],
+        "Красный Балтиец": [55.815481, 37.526597],
+        "Окская": [55.718622, 37.781283],
+        "Нижегородская": [55.731835, 37.729410],
+        "Андроновка": [55.746834, 37.737423],
+        "Зеленоград — Крюково": [55.980257, 37.173793],
+        "Озёрная": [55.670578, 37.449018],
+        "Бутырская": [55.813397, 37.602487],
+        "Некрасовка": [55.702968, 37.928039],
+        "Коптево": [55.840452, 37.521413],
+        "Лихоборы": [55.847666, 37.553039],
+        "Улица Скобелевская": [55.548047, 37.554658],
+        "Силикатная": [55.470458, 37.555457],
+        "Внуково": [55.607082, 37.287697],
+        "Трикотажная": [55.833124, 37.399141],
+        "Лесопарковая": [55.582048, 37.577037],
+        "Улица Горчакова": [55.541938, 37.531523],
+        "Москва-Товарная": [55.745428, 37.688811],
+        "Новохохловская": [55.724084, 37.716750],
+        "Новодачная": [55.924458, 37.527864],
+        "Верхние Лихоборы": [55.856236, 37.561044],
+        "Фонвизинская": [55.822887, 37.587354],
+        "Крымская": [55.689795, 37.605862],
+        "Красный Строитель": [55.589753, 37.615073],
+        "Лефортово": [55.764699, 37.706756],
+        "Площадь Гагарина": [55.706827, 37.586620],
+        "Санино": [55.584004, 37.138019],
+        "Вешняки": [55.722624, 37.797030],
+        "Улица Академика Королёва": [55.821836, 37.626746],
+        "Лужники": [55.720834, 37.560329],
+        "Лианозово": [55.898615, 37.544863],
+        "Очаково": [55.683140, 37.450572],
+        "Воронцовская": [55.658847, 37.539456],
+        "Терехово": [55.748103, 37.459729],
+        "Щербинка": [55.510493, 37.562221],
+        "Дегунино": [55.865194, 37.573216],
+        "Депо": [55.745943, 37.694564],
+        "Новоподрезково": [55.936534, 37.352246],
+        "Яхромская": [55.879903, 37.545443],
+        "Хлебниково": [55.970965, 37.504565],
+        "Верхние котлы": [55.690081, 37.618775],
+        "Лухмановская": [55.708517, 37.900580],
+        "Покровское": [55.602668, 37.631799],
+        "Улица Дмитриевского": [55.710314, 37.879059],
+        "Кленовый бульвар": [55.674689, 37.681577],
+        "Борисово": [55.633370, 37.743642],
+        "Боровское шоссе": [55.647673, 37.370129],
+        "Жулебино": [55.685136, 37.855803],
+        "Марьина Роща (Шереметьевская)": [55.795070, 37.616495],
+        "Немчиновка": [55.715991, 37.375558],
+        "Лермонтовский проспект": [55.701711, 37.852384],
+        "Варшавская (Коломенское)": [55.653929, 37.622194],
+        "Новоясеневская": [55.601714, 37.553836],
+        "Соколиная Гора": [55.769919, 37.745391],
+        "Марксистская": [55.741278, 37.656338],
+        "Косино": [55.703477, 37.851657],
+        "Долгопрудная": [55.940033, 37.520047],
+        "Терехово (Мнёвники)": [55.748110, 37.459744],
+        "Сколково": [55.700204, 37.342965],
+        "Битца": [55.571119, 37.611271],
+        "Котельники": [55.674136, 37.858671],
+        "Пятницкое Шоссе": [55.855967, 37.354141],
+        "Китай-Город": [55.754362, 37.633890],
+        "Минская": [55.72361, 37.49750],
+        "Аминьевская": [55.69722, 37.46472],
+        "Давыдково": [55.71500, 37.45028],
+        "Молодёжная": [55.74139, 37.41694],
+        "Саларьево": [55.62194, 37.42417],
+        "Бульвар Рокоссовского": [55.81694, 37.73417],
+        "Филёвский Парк": [55.73917, 37.48361],
+        "Библиотека И Ленина": [55.75222, 37.61000],
+        "Зил": [55.69583, 37.64861],
+        "Коломенская": [55.67806, 37.66806],
+        "Спартак": [55.81806, 37.43583],
+        "Новые Черёмушки": [55.67028, 37.55417],
+        "Щёлковская": [55.80944, 37.79833],
+        "Царицыно": [55.62139, 37.66917],
+        "Савёловская": [55.79417, 37.58722],
+        "Мичуринский Проспект": [55.68861, 37.48583],
+        "Зюзино": [55.65694, 37.57278],
+        "Семёновская": [55.78306, 37.71917],
+        "Бутово": [55.54333, 37.57611],
+        "Тёплый Стан": [55.61861, 37.50722],
+        "Чертановская": [55.64083, 37.60667],
+        "Пыхтино": [55.62500, 37.44639],
+        "Остафьево": [55.36528, 37.85611],
+        "Юго-Восточная": [55.70417, 37.81917],
+        "Алма-Атинская": [55.63278, 37.76583],
+        "Зорге": [55.78722, 37.50583],
+        "Румянцево": [55.63306, 37.44194],
+        "Сетунь": [55.72306, 37.38694],
+        "Хорошево": [55.77667, 37.52083],
+        "Шипиловская": [55.62111, 37.74333],
+        "Тропарево": [55.64583, 37.47250],
+        "Белокаменная": [55.82694, 37.69806],
+        "Воробьевы Горы": [55.71028, 37.55917],
+        "Измайлово": [55.78778, 37.78167],
+        "Марк": [55.741280, 37.656344]
+      };
+
+    let map, marker, selectedLocation = null;
+
+    function showPage(pageName) {
+        console.log('Переключение на страницу:', pageName);
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        if (pageName === 'input') {
+            document.getElementById('inputPage').classList.add('active');
+        } else if (pageName === 'report') {
+            document.getElementById('reportPage').classList.add('active');
+        }
+    }
+
+    function initMap() {
+        map = L.map('map').setView([55.7558, 37.6173], 11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        map.on('click', function(e) {
+            if (marker) map.removeLayer(marker);
+            marker = L.marker(e.latlng).addTo(map);
+            selectedLocation = e.latlng;
+            updateSelectedInfo(e.latlng);
+        });
+    }
+
+    function haversineDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // км
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    function updateSelectedInfo(latlng) {
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('selectedAddress').textContent = `Адрес: ${data.display_name || 'Неизвестно'}`;
+            })
+            .catch(error => {
+                document.getElementById('selectedAddress').textContent = 'Ошибка получения адреса';
+            });
+
+        const distances = Object.entries(metro_coords).map(([name, [lat, lon]]) => ({
+            name,
+            dist: haversineDistance(latlng.lat, latlng.lng, lat, lon)
+        }));
+        distances.sort((a, b) => a.dist - b.dist);
+        const nearest = distances.slice(0, 3);
+        document.getElementById('nearestMetros').textContent = `Ближайшие станции: ${nearest.map(s => `${s.name} (${s.dist.toFixed(2)} км)`).join(', ')}`;
+
+        if (nearest.length > 0) {
+            document.getElementById('minutesToMetro').value = (nearest[0].dist * 12).toFixed(1);
+        }
+    }
+
+    function searchAddress() {
+        const address = document.getElementById('addressInput').value;
+        if (!address) {
+            document.getElementById('errorMessage').textContent = 'Введите адрес для поиска';
+            document.getElementById('errorMessage').style.display = 'block';
+            return;
+        }
+
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    const latlng = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+                    if (marker) map.removeLayer(marker);
+                    marker = L.marker(latlng).addTo(map);
+                    map.setView(latlng, 15);
+                    selectedLocation = latlng;
+                    updateSelectedInfo(latlng);
+                    document.getElementById('errorMessage').style.display = 'none';
+                } else {
+                    document.getElementById('errorMessage').textContent = 'Адрес не найден';
+                    document.getElementById('errorMessage').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                document.getElementById('errorMessage').textContent = 'Ошибка поиска адреса';
+                document.getElementById('errorMessage').style.display = 'block';
+            });
+    }
+
+    function getNearestMetros(latlng) {
+        const distances = Object.entries(metro_coords).map(([name, [lat, lon]]) => ({
+            name,
+            coords: { lat: lat, lon: lon },
+            dist: haversineDistance(latlng.lat, latlng.lng, lat, lon)
+        }));
+        distances.sort((a, b) => a.dist - b.dist);
+        const nearest = distances.slice(0, 3);
+        const metroStations = {};
+        nearest.forEach(s => {
+            metroStations[s.name] = s.coords;
+        });
+        return metroStations;
+    }
+
+    function formatNumber(num) {
+        if (!num || isNaN(num)) return '0';
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    }
+
+    function unformatNumber(str) {
+        return str.replace(/\s/g, '');
+    }
+
+    function updateModelsGrid(data) {
+        try {
+            console.log('Обновление modelsGrid:', JSON.stringify(data, null, 2));
+            const modelsGrid = document.getElementById('modelsGrid');
+            const predictions = data.prediction_details || {};
+            const weights = data.model_weights || {};
+            modelsGrid.innerHTML = `
+                <div class="model-card-small">
+                    <h3>Random Forest</h3>
+                    <p class="model-price">${formatNumber(Math.round(predictions.rf || 0))} ₽</p>
+                    <p class="model-weight">Вес: ${(weights.RF || 0).toFixed(4)}</p>
+                </div>
+                <div class="model-card-small">
+                    <h3>XGBoost</h3>
+                    <p class="model-price">${formatNumber(Math.round(predictions.xgb || 0))} ₽</p>
+                    <p class="model-weight">Вес: ${(weights.XGB || 0).toFixed(4)}</p>
+                </div>
+                <div class="model-card-small">
+                    <h3>Neural Network</h3>
+                    <p class="model-price">${formatNumber(Math.round(predictions.nn || 0))} ₽</p>
+                    <p class="model-weight">Вес: ${(weights.NN || 0).toFixed(4)}</p>
+                </div>
+                <div class="model-card-small stacking">
+                    <h3>Ensemble</h3>
+                    <p class="model-price">${formatNumber(Math.round(data.ensemble_prediction || 0))} ₽</p>
+                </div>
+            `;
+        } catch (error) {
+            console.error('Ошибка в updateModelsGrid:', error);
+        }
+    }
+
+    function updateSimilarProperties(properties) {
+        try {
+            console.log('Обновление similarProperties:', properties);
+            const tbody = document.getElementById('similarPropertiesBody');
+            tbody.innerHTML = '';
+            
+            (properties || []).forEach(prop => {
+                const normalizedProp = {
+                    area: prop.area || 0,
+                    'number of rooms': prop.number_of_rooms || prop['number of rooms'] || 0,
+                    'kitchen area': prop.kitchen_area || prop['kitchen area'] || 0,
+                    'living area': prop.living_area || prop['living area'] || 0,
+                    floor: prop.floor || 0,
+                    'number of floors': prop.number_of_floors || prop['number of floors'] || 0,
+                    'minutes to metro': prop.minutes_to_metro || prop['minutes to metro'] || 0,
+                    'apartment type': prop.apartment_type || prop['apartment type'] || '-',
+                    renovation: prop.renovation || '-',
+                    price: prop.price || 0
+                };
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${normalizedProp.area.toFixed(1)}</td>
+                    <td>${normalizedProp['number of rooms']}</td>
+                    <td>${normalizedProp['kitchen area'].toFixed(1)}</td>
+                    <td>${normalizedProp['living area'].toFixed(1)}</td>
+                    <td>${normalizedProp.floor}</td>
+                    <td>${normalizedProp['number of floors']}</td>
+                    <td>${normalizedProp['minutes to metro']}</td>
+                    <td>${normalizedProp['apartment type']}</td>
+                    <td>${normalizedProp.renovation}</td>
+                    <td>${formatNumber(Math.round(normalizedProp.price))} ₽</td>
+                `;
+                tbody.appendChild(row);
+            });
+        } catch (error) {
+            console.error('Ошибка в updateSimilarProperties:', error);
+        }
+    }
+
+    let barChart, quantileChart;
+
+    function initCharts(data) {
+        try {
+            console.log('Инициализация графиков:', JSON.stringify(data, null, 2));
+            if (barChart) barChart.destroy();
+            if (quantileChart) quantileChart.destroy();
+
+            const barCtx = document.getElementById('barChart')?.getContext('2d');
+            if (!barCtx) {
+                console.error('Элемент canvas для barChart не найден');
+            } else {
+                const shapData = {
+                    labels: data.explanations?.shap ? Object.keys(data.explanations.shap) : ['Нет данных'],
+                    datasets: [{
+                        label: 'SHAP Влияние (руб.)',
+                        data: data.explanations?.shap ? Object.values(data.explanations.shap) : [0],
+                        backgroundColor: function(context) {
+                            return context.raw >= 0 ? '#ADE73A' : '#ff6b6b';
+                        }
+                    }]
+                };
+
+                const limeData = {
+                    labels: data.explanations?.lime ? Object.keys(data.explanations.lime) : ['Нет данных'],
+                    datasets: [{
+                        label: 'LIME Влияние (руб.)',
+                        data: data.explanations?.lime ? Object.values(data.explanations.lime) : [0],
+                        backgroundColor: function(context) {
+                            return context.raw >= 0 ? '#ADE73A' : '#ff6b6b';
+                        }
+                    }]
+                };
+
+                barChart = new Chart(barCtx, {
+                    type: 'bar',
+                    data: shapData,
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { ticks: { color: '#ccc' } },
+                            y: { ticks: { color: '#ccc' } }
+                        }
+                    }
+                });
+
+                document.getElementById('btn-shap').onclick = () => {
+                    if (barChart) {
+                        barChart.data = shapData;
+                        barChart.update();
+                        document.getElementById('btn-shap').classList.add('active');
+                        document.getElementById('btn-lime').classList.remove('active');
+                    }
+                };
+
+                document.getElementById('btn-lime').onclick = () => {
+                    if (barChart) {
+                        barChart.data = limeData;
+                        barChart.update();
+                        document.getElementById('btn-lime').classList.add('active');
+                        document.getElementById('btn-shap').classList.remove('active');
+                    }
+                };
+            }
+
+            document.getElementById('baseValues').innerHTML = `
+                <p>Базовое значение модели: <strong>${formatNumber(Math.round(data.ensemble_prediction || 0))} ₽</strong></p>
+                <p>Итоговое предсказание: <strong>${formatNumber(Math.round(data.ensemble_prediction || 0))} ₽</strong></p>
+            `;
+
+            const qCtx = document.getElementById('quantileChart')?.getContext('2d');
+            if (!qCtx) {
+                console.error('Элемент canvas для quantileChart не найден');
+                return;
+            }
+
+            const qData = {
+                'q5': {
+                    labels: ['Q1', 'Q2', 'Q3', 'Q4', 'Q5'],
+                    data: data.segmentation_analysis?.quartile_system?.probabilities
+                        ? Object.values(data.segmentation_analysis.quartile_system.probabilities)
+                        : [0.2, 0.2, 0.2, 0.2, 0.2]
+                },
+                'q4': {
+                    labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+                    data: data.segmentation_analysis?.tertile_system?.probabilities
+                        ? Object.values(data.segmentation_analysis.tertile_system.probabilities)
+                        : [0.25, 0.25, 0.25, 0.25]
+                },
+                'q2': {
+                    labels: ['Q1', 'Q2'],
+                    data: data.segmentation_analysis?.biseg_system?.probabilities
+                        ? Object.values(data.segmentation_analysis.biseg_system.probabilities)
+                        : [
+                            (data.segmentation_analysis?.quartile_system?.probabilities?.['0'] || 0) + (data.segmentation_analysis?.quartile_system?.probabilities?.['1'] || 0),
+                            (data.segmentation_analysis?.quartile_system?.probabilities?.['2'] || 0) + (data.segmentation_analysis?.quartile_system?.probabilities?.['3'] || 0) + (data.segmentation_analysis?.quartile_system?.probabilities?.['4'] || 0)
+                        ]
+                }
+            };
+
+            console.log('Данные квантилей:', JSON.stringify(qData, null, 2));
+
+            quantileChart = new Chart(qCtx, {
+                type: 'line',
+                data: {
+                    labels: qData.q5.labels,
+                    datasets: [{
+                        label: 'Вероятность квантиля',
+                        data: qData.q5.data,
+                        borderColor: '#ADE73A',
+                        tension: 0.4,
+                        pointRadius: 6,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#ADE73A'
+                    }]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: '#ccc' } },
+                        y: { ticks: { color: '#ccc', beginAtZero: true } }
+                    }
+                }
+            });
+
+            // Проверяем наличие кнопок
+            const quantileButtons = document.querySelectorAll('.quantile-buttons button');
+            console.log('Найдено кнопок квантилей:', quantileButtons.length);
+            if (quantileButtons.length === 0) {
+                console.error('Кнопки .quantile-buttons button не найдены');
+            }
+
+            // Делегирование событий для кнопок
+            document.querySelector('.quantile-buttons')?.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
+                const type = button.id; // q5, q4, q2
+                if (['q5', 'q4', 'q2'].includes(type)) {
+                    console.log('Переключение квантиля:', type);
+                    const q = qData[type];
+                    if (quantileChart && q) {
+                        quantileChart.data.labels = q.labels;
+                        quantileChart.data.datasets[0].data = q.data;
+                        quantileChart.update();
+                        document.querySelectorAll('.quantile-buttons button').forEach(b => b.classList.remove('active'));
+                        button.classList.add('active');
+                    } else {
+                        console.error('Ошибка: quantileChart или qData[type] отсутствует', { quantileChart, qData: qData[type] });
+                    }
+                }
+            });
+
+            // Установка класса recommended и звезды
+            document.querySelectorAll('.quantile-buttons button').forEach(b => {
+                b.classList.remove('recommended');
+                b.innerHTML = b.innerHTML.replace(/★/, ''); // Удаляем старую звезду
+            });
+            let chosenSystem = data.chosen_system || '2seg_clean';
+            if (chosenSystem.includes('general')) {
+                chosenSystem = chosenSystem.replace('general', '2seg');
+            }
+            const chosenSegment = data.chosen_segment;
+            console.log('chosen_system:', chosenSystem, 'chosen_segment:', chosenSegment);
+
+            if (chosenSystem.includes('4seg')) {
+                document.getElementById('q5').classList.add('recommended');
+                if (chosenSegment !== null && chosenSegment !== undefined) {
+                    const element = document.getElementById(`q${chosenSegment + 2}`);
+                    if (element) {
+                        element.insertAdjacentHTML('afterbegin', '<span class="quartile-star">★</span>');
+                    }
+                }
+            } else if (chosenSystem.includes('3seg')) {
+                document.getElementById('q4').classList.add('recommended');
+                if (chosenSegment !== null && chosenSegment !== undefined) {
+                    const element = document.getElementById(`q${chosenSegment + 2}`);
+                    if (element) {
+                        element.insertAdjacentHTML('afterbegin', '<span class="tertile-star">★</span>');
+                    }
+                }
+            } else {
+                document.getElementById('q2').classList.add('recommended');
+                if (chosenSegment !== null && chosenSegment !== undefined) {
+                    const element = document.getElementById(`q${chosenSegment + 2}`);
+                    if (element) {
+                        element.insertAdjacentHTML('afterbegin', '<span class="biseg-star">★</span>');
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Ошибка в initCharts:', error);
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    document.getElementById('propertyForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const errorMessage = document.getElementById('errorMessage');
+
+        if (!selectedLocation) {
+            errorMessage.textContent = 'Пожалуйста, укажите местоположение метро на карте или через поиск адреса';
+            errorMessage.style.display = 'block';
+            return;
+        }
+
+        errorMessage.style.display = 'none';
+        
+        const formData = new FormData();
+        formData.append('area', document.getElementById('area').value);
+        formData.append('living_area', document.getElementById('livingArea').value);
+        formData.append('kitchen_area', document.getElementById('kitchenArea').value);
+        formData.append('number_of_rooms', document.getElementById('numberOfRooms').value);
+        formData.append('floor', document.getElementById('floor').value);
+        formData.append('number_of_floors', document.getElementById('numberOfFloors').value);
+        formData.append('apartment_type', document.getElementById('apartmentType').value);
+        formData.append('renovation', document.getElementById('renovation').value);
+        formData.append('minutes_to_metro', document.getElementById('minutesToMetro').value);
+        formData.append('data-type', document.getElementById('dataType').value);
+        formData.append('metro_lat', selectedLocation.lat);
+        formData.append('metro_lon', selectedLocation.lng);
+        const metroStations = getNearestMetros(selectedLocation);
+        formData.append('metro_stations', JSON.stringify(metroStations));
+
+        console.log('Отправка данных:', Object.fromEntries(formData));
+
+        $.ajax({
+            url: '/predict/',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            beforeSend: function(xhr) {
+                xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+            },
+            success: function(response) {
+                console.log('Получен ответ:', JSON.stringify(response, null, 2));
+                if (response.success) {
+                    try {
+                        // Проверка элементов DOM
+                        if (!document.getElementById('rangeValue')) {
+                            console.error('Элемент #rangeValue не найден');
+                        }
+                        if (!document.getElementById('modelsGrid')) {
+                            console.error('Элемент #modelsGrid не найден');
+                        }
+                        if (!document.getElementById('similarPropertiesBody')) {
+                            console.error('Элемент #similarPropertiesBody не найден');
+                        }
+
+                        // Обновление диапазона цен
+                        let rangeText = response.predicted_price_range || '0 ₽ – 0 ₽';
+                        if (!response.predicted_price_range && response.lower_bound && response.upper_bound) {
+                            rangeText = `${formatNumber(Math.round(response.lower_bound))} ₽ – ${formatNumber(Math.round(response.upper_bound))} ₽`;
+                        }
+                        document.getElementById('rangeValue').textContent = rangeText;
+                        console.log('Установлен диапазон цен:', rangeText);
+
+                        // Обновление моделей
+                        updateModelsGrid(response);
+
+                        // Обновление похожих объектов
+                        updateSimilarProperties(response.similar_properties || []);
+
+                        // Инициализация графиков
+                        initCharts(response);
+
+                        // Обновление взвешенного предсказания
+                        const ensembleInput = document.getElementById('ensemblePrediction');
+                        const ensembleValue = response.ensemble_prediction || 0;
+                        ensembleInput.value = formatNumber(Math.round(ensembleValue));
+                        ensembleInput.dataset.raw = Math.round(ensembleValue);
+
+                        showPage('report');
+                    } catch (error) {
+                        console.error('Ошибка при обработке ответа:', error);
+                        errorMessage.textContent = 'Ошибка при рендеринге отчёта: ' + error.message;
+                        errorMessage.style.display = 'block';
+                        showPage('report');
+                    }
+                } else {
+                    errorMessage.textContent = response.error || 'Ошибка при обработке запроса';
+                    errorMessage.style.display = 'block';
+                }
+            },
+            error: function(xhr) {
+                console.error('Ошибка AJAX:', xhr.responseJSON);
+                errorMessage.textContent = 'Ошибка сервера: ' + (xhr.responseJSON?.error || 'Неизвестная ошибка');
+                errorMessage.style.display = 'block';
+            }
+        });
+    });
+
+    const editableInput = document.getElementById('ensemblePrediction');
+    editableInput.addEventListener('input', (e) => {
+        let cleanValue = unformatNumber(e.target.value);
+        if (!isNaN(cleanValue) && cleanValue !== '') {
+            e.target.value = formatNumber(cleanValue);
+            e.target.dataset.raw = cleanValue;
+        } else if (cleanValue === '') {
+            // Разрешить временно пустой ввод
+        } else {
+            e.target.value = formatNumber(e.target.dataset.raw || '0');
+        }
+    });
+
+    editableInput.addEventListener('blur', () => {
+        let cleanValue = unformatNumber(editableInput.value);
+        if (cleanValue === '') {
+            cleanValue = editableInput.dataset.raw || '0';
+        }
+        editableInput.value = formatNumber(cleanValue);
+        editableInput.dataset.raw = cleanValue;
+    });
+
+    document.querySelector('.save').addEventListener('click', () => {
+        const rawValue = document.getElementById('ensemblePrediction').dataset.raw;
+        alert('Значение сохранено: ' + formatNumber(rawValue) + ' ₽');
+    });
+
+    window.addEventListener('load', function() {
+        setTimeout(initMap, 100);
+    });
+  </script>
+</body>
+</html>
