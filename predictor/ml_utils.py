@@ -2058,129 +2058,317 @@ class RealEstateAnalyzer:
             'model_weights': model_weights
         }
         
-    def analyze_with_shap(self, model, X_scaled, feature_names):
-        """SHAP анализ предсказания"""
-        try:
-            explainer = shap.TreeExplainer(model)
-            shap_values = explainer.shap_values(X_scaled)
-            
-            print("\n=== SHAP анализ важности признаков ===")
-            
-            if len(X_scaled) == 1:
-                shap_values_single = shap_values[0]
-                feature_importance = list(zip(feature_names, shap_values_single))
-                feature_importance.sort(key=lambda x: abs(x[1]), reverse=True)
+        def compute_shap(self, model, X_scaled, feature_names):
+            try:
+                print("=== Starting compute_shap ===")
+                print("Model type:", type(model))
+                print("X_scaled:", X_scaled)
+                print("Feature names:", feature_names)
                 
-                print("\nВлияние признаков на предсказание (по убыванию важности):")
-                for feature, importance in feature_importance[:10]:
+                corrected_feature_names = [
+                    'minutes_to_metro' if f == 'minutes to metro' else
+                    'number_of_rooms' if f == 'number of rooms' else
+                    'living_area' if f == 'living area' else
+                    'kitchen_area' if f == 'kitchen area' else
+                    'number_of_floors' if f == 'number of floors' else
+                    'apartment_type' if f == 'apartment type' else f
+                    for f in feature_names
+                ]
+                print("Corrected feature names:", corrected_feature_names)
+                
+                if self.training_data is None or len(self.training_data) == 0:
+                    raise ValueError("Training data is not available")
+                print("Training data shape:", self.training_data.shape)
+                print("Training data columns:", list(self.training_data.columns))
+                
+                training_data = self.training_data[corrected_feature_names].copy()
+                categorical_columns = ['apartment_type', 'renovation']
+                for col in categorical_columns:
+                    if col in training_data.columns and training_data[col].dtype == 'object':
+                        le = self.label_encoders.get(col, LabelEncoder())
+                        training_data[col] = le.fit_transform(training_data[col].astype(str))
+                        if col not in self.label_encoders:
+                            self.label_encoders[col] = le
+                print("Training data after encoding:", training_data.head())
+                
+                training_data = training_data.to_numpy()
+                if len(training_data) > 1000:
+                    training_data = training_data[np.random.choice(len(training_data), 1000, replace=False)]
+                print("Training data sample:", training_data[:5])
+                
+                if len(X_scaled.shape) == 1:
+                    X_scaled = X_scaled.reshape(1, -1)
+                print("X_scaled shape:", X_scaled.shape)
+                
+                from sklearn.ensemble import RandomForestRegressor
+                if isinstance(model, RandomForestRegressor):
+                    print("Using TreeExplainer")
+                    explainer = shap.TreeExplainer(model)
+                else:
+                    print("Using KernelExplainer")
+                    explainer = shap.KernelExplainer(model.predict, training_data)
+                
+                shap_values = explainer.shap_values(X_scaled)
+                
+                if X_scaled.shape[0] == 1:
+                    shap_values_single = shap_values[0] if isinstance(shap_values, list) else shap_values
+                    if shap_values_single.ndim > 1:
+                        shap_values_single = shap_values_single[0]
+                    shap_dict = {feature: float(value) for feature, value in zip(corrected_feature_names, shap_values_single)}
+                    print("SHAP values:", shap_dict)
+                    return shap_dict
+                else:
+                    print("Ошибка: Ожидается один пример для анализа")
+                    return {}
+            except Exception as e:
+                print(f"Error in SHAP computation: {e}")
+                return {}
+
+        def analyze_with_shap(self, model, X_scaled, feature_names):
+            try:
+                print("=== Starting analyze_with_shap ===")
+                print("Model type:", type(model))
+                print("X_scaled:", X_scaled)
+                print("Feature names:", feature_names)
+                
+                corrected_feature_names = [
+                    'minutes_to_metro' if f == 'minutes to metro' else
+                    'number_of_rooms' if f == 'number of rooms' else
+                    'living_area' if f == 'living area' else
+                    'kitchen_area' if f == 'kitchen area' else
+                    'number_of_floors' if f == 'number of floors' else
+                    'apartment_type' if f == 'apartment type' else f
+                    for f in feature_names
+                ]
+                print("Corrected feature names:", corrected_feature_names)
+                
+                if self.training_data is None or len(self.training_data) == 0:
+                    raise ValueError("Training data is not available")
+                print("Training data shape:", self.training_data.shape)
+                print("Training data columns:", list(self.training_data.columns))
+                
+                training_data = self.training_data[corrected_feature_names].copy()
+                categorical_columns = ['apartment_type', 'renovation']
+                for col in categorical_columns:
+                    if col in training_data.columns and training_data[col].dtype == 'object':
+                        le = self.label_encoders.get(col, LabelEncoder())
+                        training_data[col] = le.fit_transform(training_data[col].astype(str))
+                        if col not in self.label_encoders:
+                            self.label_encoders[col] = le
+                print("Training data after encoding:", training_data.head())
+                
+                training_data = training_data.to_numpy()
+                if len(training_data) > 1000:
+                    training_data = training_data[np.random.choice(len(training_data), 1000, replace=False)]
+                print("Training data sample:", training_data[:5])
+                
+                if len(X_scaled.shape) == 1:
+                    X_scaled = X_scaled.reshape(1, -1)
+                print("X_scaled shape:", X_scaled.shape)
+                
+                from sklearn.ensemble import RandomForestRegressor
+                if isinstance(model, RandomForestRegressor):
+                    print("Using TreeExplainer")
+                    explainer = shap.TreeExplainer(model)
+                else:
+                    print("Using KernelExplainer")
+                    explainer = shap.KernelExplainer(model.predict, training_data)
+                
+                shap_values = explainer.shap_values(X_scaled)
+                
+                if X_scaled.shape[0] == 1:
+                    shap_values_single = shap_values[0] if isinstance(shap_values, list) else shap_values
+                    if shap_values_single.ndim > 1:
+                        shap_values_single = shap_values_single[0]
+                    feature_importance = list(zip(corrected_feature_names, shap_values_single))
+                    feature_importance.sort(key=lambda x: abs(x[1]), reverse=True)
+                    
+                    print("\n=== SHAP анализ важности признаков ===")
+                    print("\nВлияние признаков на предсказание (по убыванию важности):")
+                    for feature, importance in feature_importance[:10]:
+                        direction = "увеличивает" if importance > 0 else "уменьшает"
+                        print(f"{feature}: {importance:+,.0f} руб. ({direction} цену)")
+                    
+                    base_value = float(explainer.expected_value)
+                    predicted_value = base_value + sum(shap_values_single)
+                    print(f"\nБазовое значение модели: {base_value:,.0f} руб.")
+                    print(f"Итоговое предсказание: {predicted_value:,.0f} руб.")
+                    
+                    shap_dict = {feature: float(value) for feature, value in zip(corrected_feature_names, shap_values_single)}
+                    print("SHAP values:", shap_dict)
+                    return shap_dict
+                else:
+                    print("Ошибка: Ожидается один пример для анализа")
+                    return {}
+            except Exception as e:
+                print(f"Ошибка при выполнении SHAP анализа: {e}")
+                return {}
+    
+        def compute_lime(self, X_sample, feature_names, model_key, data_suffix):
+            try:
+                print("=== Starting compute_lime ===")
+                print("Model key:", model_key)
+                print("Data suffix:", data_suffix)
+                print("X_sample:", X_sample)
+                print("Feature names:", feature_names)
+                
+                corrected_feature_names = [
+                    'minutes_to_metro' if f == 'minutes to metro' else
+                    'number_of_rooms' if f == 'number of rooms' else
+                    'living_area' if f == 'living area' else
+                    'kitchen_area' if f == 'kitchen area' else
+                    'number_of_floors' if f == 'number of floors' else
+                    'apartment_type' if f == 'apartment type' else f
+                    for f in feature_names
+                ]
+                print("Corrected feature names:", corrected_feature_names)
+                
+                if self.training_data is None or len(self.training_data) == 0:
+                    raise ValueError("Training data is not available")
+                print("Training data shape:", self.training_data.shape)
+                print("Training data columns:", list(self.training_data.columns))
+                
+                training_data = self.training_data[corrected_feature_names].copy()
+                categorical_columns = ['apartment_type', 'renovation']
+                for col in categorical_columns:
+                    if col in training_data.columns and training_data[col].dtype == 'object':
+                        le = self.label_encoders.get(col, LabelEncoder())
+                        training_data[col] = le.fit_transform(training_data[col].astype(str))
+                        if col not in self.label_encoders:
+                            self.label_encoders[col] = le
+                
+                training_data = training_data.to_numpy()
+                print("Training data sample:", training_data[:5])
+                
+                # НЕ масштабируем training_data - используем как есть
+                # НЕ используем categorical_features - используем все как непрерывные
+                
+                scaler_key = f'main_{data_suffix}'
+                scaler = self.scalers.get(scaler_key)
+                print("Scaler key:", scaler_key, "Scaler exists:", scaler is not None)
+                
+                # Масштабируем X_sample целиком
+                X_sample_scaled = X_sample
+                if scaler:
+                    X_sample_scaled = scaler.transform(X_sample.reshape(1, -1)).flatten()
+                print("X_sample_scaled:", X_sample_scaled)
+                
+                explainer = LimeTabularExplainer(
+                    training_data,
+                    feature_names=corrected_feature_names,
+                    mode='regression',
+                    discretize_continuous=True,
+                    discretizer='quartile',
+                    verbose=False,
+                    random_state=42
+                )
+                
+                def predict_fn(X):
+                    if '_nn' in model_key:
+                        y_scaler_key = f'y_scaler_{model_key}'
+                        scalers_dict = self.scalers.get(y_scaler_key)
+                        if scalers_dict is None:
+                            raise ValueError(f"Y-scaler for {model_key} missing")
+                        return self.predict_neural_network(self.models[model_key], X, scalers_dict)
+                    return self.models[model_key].predict(X)
+                
+                explanation = explainer.explain_instance(
+                    X_sample_scaled,
+                    predict_fn,
+                    num_features=len(corrected_feature_names),
+                    num_samples=500
+                )
+                
+                lime_dict = {feature: float(value) for feature, value in explanation.as_list()}
+                print("LIME explanation:", lime_dict)
+                return lime_dict
+            except Exception as e:
+                print(f"Error in LIME computation: {e}")
+                return {}
+    
+        def analyze_with_lime(self, X_sample, feature_names, model_key, data_suffix):
+            try:
+                print("=== Starting analyze_with_lime ===")
+                print("Model key:", model_key)
+                print("Data suffix:", data_suffix)
+                print("X_sample:", X_sample)
+                print("Feature names:", feature_names)
+                
+                corrected_feature_names = [
+                    'minutes_to_metro' if f == 'minutes to metro' else
+                    'number_of_rooms' if f == 'number of rooms' else
+                    'living_area' if f == 'living area' else
+                    'kitchen_area' if f == 'kitchen area' else
+                    'number_of_floors' if f == 'number of floors' else
+                    'apartment_type' if f == 'apartment type' else f
+                    for f in feature_names
+                ]
+                print("Corrected feature names:", corrected_feature_names)
+                
+                if self.training_data is None or len(self.training_data) == 0:
+                    raise ValueError("Training data is not available")
+                print("Training data shape:", self.training_data.shape)
+                print("Training data columns:", list(self.training_data.columns))
+                
+                training_data = self.training_data[corrected_feature_names].copy()
+                categorical_columns = ['apartment_type', 'renovation']
+                for col in categorical_columns:
+                    if col in training_data.columns and training_data[col].dtype == 'object':
+                        le = self.label_encoders.get(col, LabelEncoder())
+                        training_data[col] = le.fit_transform(training_data[col].astype(str))
+                        if col not in self.label_encoders:
+                            self.label_encoders[col] = le
+                
+                training_data = training_data.to_numpy()
+                print("Training data sample:", training_data[:5])
+                
+                scaler_key = f'main_{data_suffix}'
+                scaler = self.scalers.get(scaler_key)
+                print("Scaler key:", scaler_key, "Scaler exists:", scaler is not None)
+                
+                X_sample_scaled = X_sample
+                if scaler:
+                    X_sample_scaled = scaler.transform(X_sample.reshape(1, -1)).flatten()
+                print("X_sample_scaled:", X_sample_scaled)
+                
+                explainer = LimeTabularExplainer(
+                    training_data,
+                    feature_names=corrected_feature_names,
+                    mode='regression',
+                    discretize_continuous=True,
+                    discretizer='quartile',
+                    verbose=False,
+                    random_state=42
+                )
+                
+                def predict_fn(X):
+                    if '_nn' in model_key:
+                        y_scaler_key = f'y_scaler_{model_key}'
+                        scalers_dict = self.scalers.get(y_scaler_key)
+                        if scalers_dict is None:
+                            raise ValueError(f"Y-scaler for {model_key} missing")
+                        return self.predict_neural_network(self.models[model_key], X, scalers_dict)
+                    return self.models[model_key].predict(X)
+                
+                explanation = explainer.explain_instance(
+                    X_sample_scaled,
+                    predict_fn,
+                    num_features=len(corrected_feature_names),
+                    num_samples=500
+                )
+                
+                print("\n=== LIME анализ важности признаков ===")
+                print("\nВлияние признаков на предсказание (LIME):")
+                for feature, importance in explanation.as_list():
                     direction = "увеличивает" if importance > 0 else "уменьшает"
                     print(f"{feature}: {importance:+,.0f} руб. ({direction} цену)")
                 
-                base_value = float(explainer.expected_value)
-                predicted_value = base_value + sum(shap_values_single)
-                print(f"\nБазовое значение модели: {base_value:,.0f} руб.")
-                print(f"Итоговое предсказание: {predicted_value:,.0f} руб.")
-            
-        except Exception as e:
-            print(f"Ошибка при выполнении SHAP анализа: {e}")
-    
-    def analyze_with_lime(self, X_sample, feature_names, model_key, data_suffix):
-        """LIME анализ предсказания"""
-        try:
-            # Создаем тренировочные данные для LIME
-            scaler_key = f'main_{data_suffix}'
-            
-            # Генерируем случайные данные в том же диапазоне для обучения LIME
-            np.random.seed(42)
-            n_samples = 1000
-            training_data = []
-            
-            for _ in range(n_samples):
-                sample = X_sample.copy()
-                # Добавляем шум к признакам
-                for i in range(len(sample)):
-                    noise = np.random.normal(0, abs(sample[i]) * 0.1)
-                    sample[i] += noise
-                training_data.append(sample)
-            
-            training_data = np.array(training_data)
-            
-            # Создаем LIME explainer
-            explainer = lime.lime_tabular.LimeTabularExplainer(
-                training_data,
-                feature_names=feature_names,
-                mode='regression',
-                verbose=False
-            )
-            
-            # Функция предсказания для LIME
-            def predict_fn(X):
-                if '_nn' in model_key:
-                    y_scaler_key = f'y_scaler_{model_key.split("_rf")[0].split("_xgb")[0].split("_nn")[0]}_nn'
-                    scalers_dict = self.scalers.get(y_scaler_key, None)
-                    if scalers_dict is None:
-                        raise ValueError(f"Масштабатор для {model_key} отсутствует")
-                    return self.predict_neural_network(self.models[model_key], X, scalers_dict)
-                else:
-                    return self.models[model_key].predict(X)
-            
-            # Получаем объяснение
-            explanation = explainer.explain_instance(
-                X_sample, 
-                predict_fn, 
-                num_features=10
-            )
-            
-            print("\n=== LIME анализ важности признаков ===")
-            print("\nВлияние признаков на предсказание (LIME):")
-            
-            for feature, importance in explanation.as_list():
-                direction = "увеличивает" if importance > 0 else "уменьшает"
-                print(f"{feature}: {importance:+,.0f} руб. ({direction} цену)")
-            
-        except Exception as e:
-            print(f"Ошибка при выполнении LIME анализа: {e}")
-    def compute_shap(self, model, X_scaled, feature_names):
-        try:
-            explainer = shap.TreeExplainer(model)
-            shap_values = explainer.shap_values(X_scaled)
-            
-            if len(X_scaled) == 1:
-                shap_values_single = shap_values[0]
-                shap_dict = {feature: float(value) for feature, value in zip(feature_names, shap_values_single)}
-                return shap_dict
-            return {}
-        except Exception as e:
-            print(f"Error in SHAP computation: {e}")
-            return {}
-
-    def compute_lime(self, X_sample, feature_names, model_key, data_suffix):
-        try:
-            scaler_key = f'main_{data_suffix}'
-            training_data = np.random.normal(X_sample, abs(X_sample) * 0.1, size=(1000, len(X_sample)))
-            
-            explainer = lime.lime_tabular.LimeTabularExplainer(
-                training_data,
-                feature_names=feature_names,
-                mode='regression',
-                verbose=False
-            )
-            
-            def predict_fn(X):
-                if '_nn' in model_key:
-                    y_scaler_key = f'y_scaler_{model_key}'
-                    scalers_dict = self.scalers.get(y_scaler_key, None)
-                    if scalers_dict is None:
-                        raise ValueError(f"Y-scaler for {model_key} missing")
-                    return self.predict_neural_network(self.models[model_key], X, scalers_dict)
-                return self.models[model_key].predict(X)
-            
-            explanation = explainer.explain_instance(X_sample, predict_fn, num_features=10)
-            lime_dict = {feature: float(value) for feature, value in explanation.as_list()}
-            return lime_dict
-        except Exception as e:
-            print(f"Error in LIME computation: {e}")
-            return {}
+                lime_dict = {feature: float(value) for feature, value in explanation.as_list()}
+                print("LIME explanation:", lime_dict)
+                return lime_dict
+            except Exception as e:
+                print(f"Ошибка при выполнении LIME анализа: {e}")
+                return {}
     
     def get_model_info(self):
         """Информация о загруженных моделях"""
@@ -2397,4 +2585,5 @@ if __name__ == "__main__":
     except ValueError as e:
 
         print(f"Ошибка при предсказании: {e}")
+
 
