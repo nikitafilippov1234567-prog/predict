@@ -565,11 +565,11 @@
     </div>
     <nav class="header-nav">
       <a href="#" class="nav-link" onclick="showPage('input'); return false;">Главная</a>
+      <a href="https://github.com/nikitafilippov1234567-prog/predict" target="_blank" class="nav-link">GitHub</a>
       <form method="post" action="{% url 'logout' %}" style="display: inline;">
         {% csrf_token %}
         <button type="submit" class="nav-link" style="background: none; border: none; cursor: pointer; font: inherit;">Выход</button>
       </form>
-      <a href="https://github.com" target="_blank" class="nav-link">GitHub</a>
     </nav>
   </div>
 
@@ -577,7 +577,7 @@
     <div class="input-container">
       <div class="input-header">
         <h1>Оценка недвижимости</h1>
-        <p>Введите параметры жилья и получите точную оценку рыночной стоимости</p>
+        <p>Введите параметры жилья и получите оценку рыночной стоимости</p>
       </div>
       
       <div class="error-message" id="errorMessage"></div>
@@ -595,7 +595,7 @@
                 </div>
                 <div class="form-group">
                   <label>Жилая площадь (м²)</label>
-                  <input type="number" id="livingArea" placeholder="32" step="0.1" required>
+                  <input type="number" id="livingArea" placeholder="15" step="0.1" required>
                 </div>
               </div>
               
@@ -608,10 +608,18 @@
                   <label>Количество комнат</label>
                   <select id="numberOfRooms" required>
                     <option value="">Выбрать</option>
+                    <option value="0">0</option>
                     <option value="1">1</option>
                     <option value="2">2</option>
                     <option value="3">3</option>
-                    <option value="4">4+</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="12">12</option>
                   </select>
                 </div>
               </div>
@@ -619,15 +627,15 @@
               <div class="form-row three-cols">
                 <div class="form-group">
                   <label>Этаж</label>
-                  <input type="number" id="floor" placeholder="5" min="0" required>
+                  <input type="number" id="floor" placeholder="7" min="0" required>
                 </div>
                 <div class="form-group">
                   <label>Всего этажей</label>
-                  <input type="number" id="numberOfFloors" placeholder="9" min="1" required>
+                  <input type="number" id="numberOfFloors" placeholder="15" min="1" required>
                 </div>
                 <div class="form-group">
                   <label>Время до метро (мин)</label>
-                  <input type="number" id="minutesToMetro" placeholder="5" step="0.1" required>
+                  <input type="number" id="minutesToMetro" placeholder="10" step="0.1" required>
                 </div>
               </div>
               
@@ -636,7 +644,7 @@
                   <label>Тип квартиры</label>
                   <select id="apartmentType" required>
                     <option value="">Выбрать</option>
-                    <option value="1">Вторичка</option>
+                    <option value="1">Вторичное</option>
                     <option value="2">Новостройка</option>
                   </select>
                 </div>
@@ -710,15 +718,15 @@
       <div class="report-card">
         <h2>Распределение квантилей</h2>
         <div class="quantile-buttons">
-          <button id="q5" class="recommended">5 квантилей (4seg)</button>
-          <button id="q4">4 квантиля (3seg)</button>
-          <button id="q2">2 квантиля (general)</button>
+          <button id="q5" class="recommended">5 квантилей</button>
+          <button id="q4">4 квантиля</button>
+          <button id="q2">2 квантиля</button>
         </div>
         <canvas id="quantileChart" height="180"></canvas>
       </div>
 
       <div class="report-card">
-        <h2>Похожая недвижимость в данной области</h2>
+        <h2>Похожая недвижимость в области 3 км</h2>
         <table id="similarProperties">
           <thead>
               <tr>
@@ -1326,9 +1334,10 @@
                 };
             }
 
+            const predictions = data.prediction_details || {};
             document.getElementById('baseValues').innerHTML = `
-                <p>Базовое значение модели: <strong>${formatNumber(Math.round(data.ensemble_prediction || 0))} ₽</strong></p>
-                <p>Итоговое предсказание: <strong>${formatNumber(Math.round(data.ensemble_prediction || 0))} ₽</strong></p>
+                <p>Итоговое предсказание: <strong>${formatNumber(Math.round(predictions.rf || 0))} ₽</strong></p>
+                <p>Используется RF</p>
             `;
 
             const qCtx = document.getElementById('quantileChart')?.getContext('2d');
