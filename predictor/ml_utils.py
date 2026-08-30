@@ -213,7 +213,7 @@ class RealEstateAnalyzer:
 
     @staticmethod
     def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-        """Расстояние между двумя точками в километрах (формула Хаверсина)."""
+        """Расстояние между двумя точками в километрах (формула Гаверсинуса)."""
         from math import radians, sin, cos, sqrt, atan2
         R = 6371.0
         dlat = radians(lat2 - lat1)
